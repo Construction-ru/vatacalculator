@@ -135,6 +135,7 @@ namespace vatacalculator
 
                 //return 2;
                 Console.WriteLine("Введено неверное значение: '" + val + "'. Пожалуйста, введите целое число");
+                val = "";
             }
         }
 
