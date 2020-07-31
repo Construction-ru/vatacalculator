@@ -447,7 +447,7 @@ namespace vatacalculator
                         if (ch.Trim() == "")
                             continue;
 
-                        st = getLongFromConsole(ch, out result, true);
+                        st = getLongFromConsole(ch, out result, false);
                         if (st == 1)
                             break;
                     }
@@ -740,7 +740,7 @@ namespace vatacalculator
                             break;
                         }
 
-                        st = getLongFromConsole(ch, out result, true);
+                        st = getLongFromConsole(ch, out result, false);
                         if (st == 1)
                             break;
                     }
