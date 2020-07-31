@@ -605,6 +605,7 @@ namespace vatacalculator
             sb.AppendLine("Затраты на кв. месяц по месяцам без учёта процентов");
 
             // Начинаем с одного, т.к. считаем, что платим в конце года
+            double CostPerYearTemp = 0.0;
             for (int y = 1; y <= d.ВремяЭксплуатацииТеплоизоляции; y++)
             {
                 // Оплата по месяцам
@@ -619,11 +620,13 @@ namespace vatacalculator
 
                     if (y == 1)
                     {
+                        CostPerYearTemp += CurrentCost;
                         sb.AppendLine(monthes[m] + ": " + CurrentCost.ToString("C") + ", разница температур " + temp.ToString("F1") + ", потери " + (W*temp).ToString("F2") + " ватт на кв. метр");
                     }
                 }
             }
 
+            sb.AppendLine("Всего затрат на отопление за год на кв. метр, без процентов " + CostPerYearTemp.ToString("C"));
             sb.AppendLine("Всего затрат на отопление за срок эксплуатации теплоизоляции с учётом ставки дисконтирования " + result.ToString("C"));
 
             if (toFile)
