@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Globalization;
 using System.IO;
 using System.Reflection.Emit;
+using System.Resources;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -111,22 +113,28 @@ namespace vatacalculator
 
         private static int getLongFromConsole(out long result, bool require = true, long defaultVal = long.MinValue)
         {
+            return getLongFromConsole(null, out result, require, defaultVal);
+        }
+
+        private static int getLongFromConsole(string val, out long result, bool require = true, long defaultVal = long.MinValue)
+        {
             while (true)
             {
                 result = defaultVal;
-                var a  = getStringFromConsole();
+                if (val == null)
+                    val = getStringFromConsole();
 
-                if (a.Length == 0 && !require)
+                if (val.Length == 0 && !require)
                     return 0;
 
-                if (a == "q")
+                if (val == "q")
                     return -1;
 
-                if (long.TryParse(a, out result))
+                if (long.TryParse(val, out result))
                     return 1;
 
                 //return 2;
-                Console.WriteLine("Введено неверное значение: '" + a + "'. Пожалуйста, введите целое число");
+                Console.WriteLine("Введено неверное значение: '" + val + "'. Пожалуйста, введите целое число");
             }
         }
 
@@ -401,10 +409,13 @@ namespace vatacalculator
                 Console.WriteLine("----------------------------------------------------------------");
 
                 int i = 0;
-                int endE = 5;
-                int end  = endE;
+                int endE  = 5;
+                int end   = endE;
+                string ch = null;
                 for (; i < data.Keys.Count/* && i < end*/; i++)
                 {
+                    ch = null;
+
                     Console.WriteLine("" + (i+1).ToString("D2") + ". " + data.Keys[i]);
                     Console.WriteLine(data.Values[i].Name);
                     Console.WriteLine(data.Values[i].Comment);
@@ -418,17 +429,27 @@ namespace vatacalculator
                     {
                         end = endE;
                         Console.WriteLine("Нажмите Enter для продолжения списка или 'q' и Enter для выбора");
-                        var ch = Console.ReadLine();
+                        ch = Console.ReadLine();
                         if (ch == "q")
+                        {
+                            ch = null;
                             break;
+                        }
+
                         if (ch == "0")
                             return "main menu";
+                        if (ch.Trim() == "")
+                            continue;
+
+                        st = getLongFromConsole(ch, out result, true);
+                        if (st == 1)
+                            break;
                     }
                 }
 
                 Console.WriteLine("Выберите файл (введите номер файла и нажмите Enter)");
 
-                st = getLongFromConsole(out result, true);
+                st = getLongFromConsole(ch, out result, true);
                 if (st < 0 || result == 0)
                     return "main menu";
             }
@@ -474,7 +495,7 @@ namespace vatacalculator
             while (count < 10 && cnt < 1e6)
             {
                 cnt++;
-                double dx = 1e-3;
+                // double dx = 1e-3;
                 // double H2 = H * (1.0 + dx);
                 double s1 = РассчитатьСуммарнуюСтоимость(calcData, H , cl);
                 // double s2 = РассчитатьСуммарнуюСтоимость(calcData, H2, cl);
@@ -674,8 +695,10 @@ namespace vatacalculator
 
             SortedList<long, string> keys = new SortedList<long, string>(64);
             long st, result;
+            string ch = null;
             do
             {
+                ch = null;
                 keys.Clear();
                 Console.Clear();
 
@@ -697,15 +720,22 @@ namespace vatacalculator
                     {
                         end = endE;
                         Console.WriteLine("Нажмите Enter для продолжения списка или 'q' и Enter для выбора");
-                        var ch = Console.ReadLine();
+                        ch = Console.ReadLine();
                         if (ch == "q")
+                        {
+                            ch = null;
+                            break;
+                        }
+
+                        st = getLongFromConsole(ch, out result, true);
+                        if (st == 1)
                             break;
                     }
                 }
 
                 Console.WriteLine("Выберите файл (введите номер файла и нажмите Enter)");
 
-                st = getLongFromConsole(out result, true);
+                st = getLongFromConsole(ch, out result, true);
             }
             while (st != 1 || result < 0 || result >= data.Keys.Count);
 
