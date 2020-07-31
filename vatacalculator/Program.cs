@@ -474,11 +474,11 @@ namespace vatacalculator
         {
             var cl = askClimatFile();
             var sb = new StringBuilder();
-            sb.AppendLine("Файл расчёта" + calcData.Name);
-            sb.AppendLine("Файл климата" + cl.Name);
+            sb.AppendLine("Файл расчёта " + calcData.Name);
+            sb.AppendLine("Файл климата " + cl.Name);
 
             var now = DateTime.Now;
-            calcData.CurrentCalculationFileName = now.Year.ToString("D4") + "-" + now.Month.ToString("D2") + now.Day.ToString("D2") + "-" + now.Hour.ToString("D2") + now.Minute.ToString("D2") + ".txt";
+            calcData.CurrentCalculationFileName = now.Year.ToString("D4") + "-" + now.Month.ToString("D2") + now.Day.ToString("D2") + "-" + now.Hour.ToString("D2") + now.Minute.ToString("D2") + now.Second.ToString("D2") + ".txt";
             calcData.CurrentCalculationFileName = Path.Combine("results", calcData.CurrentCalculationFileName);
 
             if (!Directory.Exists("results"))
