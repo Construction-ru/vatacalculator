@@ -400,7 +400,8 @@ namespace vatacalculator
                 Console.WriteLine("0. Выход");
 
                 int i = 0;
-                int end = i + 25;
+                int endE = 5;
+                int end  = endE;
                 for (; i < data.Keys.Count/* && i < end*/; i++)
                 {
                     Console.WriteLine("" + (i+1).ToString("D2") + ". " + data.Keys[i]);
@@ -409,6 +410,17 @@ namespace vatacalculator
                     Console.WriteLine("----------------------------------------------------------------");
 
                     keys.Add(i+1, data.Keys[i]);
+
+                    end--;
+
+                    if (end <= 0)
+                    {
+                        end = endE;
+                        Console.WriteLine("Нажмите Enter для продолжения списка или 'q' и Enter для выбора");
+                        var ch = Console.ReadLine();
+                        if (ch == "q")
+                            break;
+                    }
                 }
 
                 Console.WriteLine("Выберите файл (введите номер файла и нажмите Enter)");
@@ -431,7 +443,7 @@ namespace vatacalculator
 
             Console.ReadLine();
 
-            return "main menu";
+            return "calc";
         }
 
         private static void calcAndPrintResult(CalculationData calcData)
@@ -496,6 +508,7 @@ namespace vatacalculator
             sb.AppendLine("Суммарная стоимость расходов с учётом процентов " + se.ToString("C") + " для толщины " + (Math.Abs(H - 0.01)*1000.0).ToString("F0"));
 
             File.AppendAllText(calcData.CurrentCalculationFileName, sb.ToString());
+            Console.WriteLine("Некоторая информация сохранена в файл " + calcData.CurrentCalculationFileName);
         }
 
         private static double РассчитатьСуммарнуюСтоимость(CalculationData calcData, double H, Climat cl, bool toFile = false)
@@ -662,7 +675,8 @@ namespace vatacalculator
                 Console.Clear();
 
                 int i = 0;
-                int end = i + 25;
+                int endE = 5;
+                int end  = endE;
                 for (; i < data.Keys.Count/* && i < end*/; i++)
                 {
                     Console.WriteLine("" + i.ToString("D2") + ". " + data.Keys[i]);
@@ -671,6 +685,17 @@ namespace vatacalculator
                     Console.WriteLine("----------------------------------------------------------------");
 
                     keys.Add(i, data.Keys[i]);
+
+                    end--;
+
+                    if (end <= 0)
+                    {
+                        end = endE;
+                        Console.WriteLine("Нажмите Enter для продолжения списка или 'q' и Enter для выбора");
+                        var ch = Console.ReadLine();
+                        if (ch == "q")
+                            break;
+                    }
                 }
 
                 Console.WriteLine("Выберите файл (введите номер файла и нажмите Enter)");

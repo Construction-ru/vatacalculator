@@ -6,26 +6,37 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="meteo\moscow-VDNH-m.txt" />
-    <None Remove="meteo\moscow-VDNH.txt" />
+    <Folder Include="meteo\" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="meteo\moscow-VDNH-m.txt">
+    <None Update="meteo\0 moscow-VDNH-m.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="meteo\moscow-VDNH.txt">
+    </None>
+    <None Update="meteo\1 Murmansk.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="meteo\moscow-VDNH-m.txt">
+    </None>
+    <None Update="meteo\1 Архангельск.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="meteo\moscow-VDNH.txt">
+    </None>
+    <None Update="meteo\1 Минусинск.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
+    </None>
+    <None Update="meteo\1 Санкт-Петербург.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="meteo\1 Сочи.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="meteo\1 Якутск.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="meteo\9 kiev.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="meteo\9 minsk.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
