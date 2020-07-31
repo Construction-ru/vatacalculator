@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Reflection.Emit;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace vatacalculator
@@ -77,6 +79,7 @@ namespace vatacalculator
 
         private static string MainMenu1()
         {
+            Console.Clear();
             Console.WriteLine("Введите на клавиатуре номер варианта");
             Console.WriteLine("1. Выбрать готовый файл расчёта");
             Console.WriteLine("2. Создать новый");
@@ -106,11 +109,11 @@ namespace vatacalculator
             return Console.ReadLine().Trim().ToLowerInvariant();
         }
 
-        private static int getLongFromConsole(out long result, bool require = true)
+        private static int getLongFromConsole(out long result, bool require = true, long defaultVal = long.MinValue)
         {
             while (true)
             {
-                result = long.MinValue;
+                result = defaultVal;
                 var a  = getStringFromConsole();
 
                 if (a.Length == 0 && !require)
@@ -134,17 +137,17 @@ namespace vatacalculator
             public string Name;
             public string Comment;
             public long   СтоимостьТеплоизоляции;
-            public long   СтоимостьМонтажаТеплоизоляции;
+            public long   СтоимостьМонтажаТеплоизоляцииКв;
+            public long   СтоимостьМонтажаТеплоизоляцииКуб;
+            public long   СтоимостьПоддержкиОдногоКилограмма;
             public long   ВесТеплоизоляции;
             public long   Теплопроводность;
-            public long   ВремяЭксплуатацииНесущихКонструкций;
             public long   СтоимостьЭлектроэнергии;
             public long   ВремяЭксплуатацииТеплоизоляции;
-            public long   ВремяЭксплуатацииНесуихКонструкций;
+            public long   ВремяЭксплуатацииНесущихКонструкций;
             public long   КредитнаяСтавка;
             public long   ДисконтированиеЭлектроэнергии;
             public long   ТемператураВКомнате;
-            public long   ТемператураВКомнате2;
 
             public int    State;
 
@@ -153,6 +156,7 @@ namespace vatacalculator
 
             public void SetValuesFromConsole()
             {
+                Console.Clear();
                 Console.WriteLine("Создание файла для рассчётов");
                 Console.WriteLine("Имя расчёта:");
                 Name = Console.ReadLine();
@@ -162,15 +166,19 @@ namespace vatacalculator
 
                 Console.WriteLine("Далее вводите целые числа");
 
-                Console.WriteLine("Стоимость одного кубического метра теплоизоляции, не включая монтаж:");
+                Console.WriteLine("Стоимость одного КУБИЧЕСКОГО метра теплоизоляции, не включая монтаж:");
                 Console.WriteLine("Обратите внимание, стоимость именно кубического метра, а не квадратного");
                 State = getLongFromConsole(out СтоимостьТеплоизоляции);
                 if (State < 0)
                     return;
 
-                Console.WriteLine("Стоимость монтажа одного квадратного метра теплоизоляции для толщины 150 мм:");
-                Console.WriteLine("Для большей толщины стоимость будет пропорционально увеличена");
-                State = getLongFromConsole(out СтоимостьМонтажаТеплоизоляции);
+                Console.WriteLine("Стоимость монтажа одного КВАДРАТНОГО метра теплоизоляции без учёта толщины изоляции (допустимо не вводить)");
+                State = getLongFromConsole(out СтоимостьМонтажаТеплоизоляцииКв, false, 0);
+                if (State < 0)
+                    return;
+
+                Console.WriteLine("Стоимость монтажа одного КУБИЧЕСКОГО метра теплоизоляции (допустимо не вводить)");
+                State = getLongFromConsole(out СтоимостьМонтажаТеплоизоляцииКуб, false, 0);
                 if (State < 0)
                     return;
 
@@ -180,8 +188,8 @@ namespace vatacalculator
                     return;
 
                 Console.WriteLine("Стоимость поддержания несущими конструкциями одного килограмма теплоизоляции (включая монтаж)");
-                Console.WriteLine("(для самонесущих стен из конструкционно-теплоизоляционных материалов, напрмер, полистиролбетона - 0)");
-                State = getLongFromConsole(out ВремяЭксплуатацииНесущихКонструкций, false);
+                Console.WriteLine("(для самонесущих стен из конструкционно-теплоизоляционных материалов, напрмер, полистиролбетона - 0; для простоты расчёта можно ввести 0)");
+                State = getLongFromConsole(out СтоимостьПоддержкиОдногоКилограмма, false, 0);
                 if (State < 0)
                     return;
 
@@ -204,19 +212,19 @@ namespace vatacalculator
                     return;
 
                 Console.WriteLine("Количество лет до смены несущих конструкций (можете оставить пустым - просто нажмите Enter):");
-                State = getLongFromConsole(out ВремяЭксплуатацииНесуихКонструкций, false);
+                State = getLongFromConsole(out ВремяЭксплуатацииНесущихКонструкций, false, ВремяЭксплуатацииТеплоизоляции);
                 if (State < 0)
                     return;
 
-                Console.WriteLine("Ставка по кредиту на строительство дома (пусто - 14%)");
+                Console.WriteLine("Ставка по кредиту на строительство дома (пусто - 14%), в процентах");
                 Console.WriteLine("Даже если вы очень богаты и не планируете брать кредит, вводите больше, чем значение инфляции");
                 State = getLongFromConsole(out КредитнаяСтавка);
                 if (State < 0)
                     return;
 
-                Console.WriteLine("Ставка дисконтирования для цен на электроэнергию");
+                Console.WriteLine("Ставка дисконтирования для цен на электроэнергию, в процентах");
                 Console.WriteLine("(пусто - равно ставке по кредиту; рекомендуется оставить пустым - просто нажмите Enter)");
-                State = getLongFromConsole(out ДисконтированиеЭлектроэнергии, false);
+                State = getLongFromConsole(out ДисконтированиеЭлектроэнергии, false, КредитнаяСтавка);
                 if (State < 0)
                     return;
 
@@ -224,18 +232,15 @@ namespace vatacalculator
                 State = getLongFromConsole(out ТемператураВКомнате);
                 if (State < 0)
                     return;
-                Console.WriteLine("Вторая температура в комнате (можно оставить пустым):");
-                State = getLongFromConsole(out ТемператураВКомнате2, false);
-                if (State < 0)
-                    return;
 
                 Label:
+                FileInfo fi = null;
                 try
                 {
                     Console.WriteLine("Введите имя файла расчёта (будет сохранён в директории 'data'):");
                     FileName = Console.ReadLine();
 
-                    var fi = new FileInfo(Path.Combine("data", FileName));
+                    fi = new FileInfo(Path.Combine("data", FileName));
                     if (fi.Exists)
                     {
                         Console.WriteLine("Такой файл уже существует");
@@ -248,11 +253,13 @@ namespace vatacalculator
                 }
 
                 SaveToFile();
+                Console.WriteLine("Сохранено в файл " + fi.FullName);
+                Console.WriteLine("При необходимости изменения параметров, это можно сделать вручную из текстового редактора для простого текстового формата");
             }
 
             private void SaveToFile()
             {
-                File.WriteAllText(FileName, this.ToString());
+                File.WriteAllText(Path.Combine("data", FileName), this.ToString());
             }
 
             public override string ToString()
@@ -265,28 +272,28 @@ namespace vatacalculator
                 sb.AppendLine(Comment);
                 sb.AppendLine("СтоимостьТеплоизоляции");
                 sb.AppendLine(СтоимостьТеплоизоляции.ToString());
-                sb.AppendLine("СтоимостьМонтажаТеплоизоляции");
-                sb.AppendLine(СтоимостьМонтажаТеплоизоляции.ToString());
+                sb.AppendLine("СтоимостьМонтажаТеплоизоляцииКв");
+                sb.AppendLine(СтоимостьМонтажаТеплоизоляцииКв.ToString());
+                sb.AppendLine("СтоимостьМонтажаТеплоизоляцииКуб");
+                sb.AppendLine(СтоимостьМонтажаТеплоизоляцииКуб.ToString());
                 sb.AppendLine("ВесТеплоизоляции");
                 sb.AppendLine(ВесТеплоизоляции.ToString());
-                sb.AppendLine("СтоимостьНесущихКонструкций");
-                sb.AppendLine(ВремяЭксплуатацииНесущихКонструкций.ToString());
+                sb.AppendLine("СтоимостьПоддержкиОдногоКилограмма");
+                sb.AppendLine(СтоимостьПоддержкиОдногоКилограмма.ToString());
                 sb.AppendLine("Теплопроводность");
                 sb.AppendLine(Теплопроводность.ToString());
                 sb.AppendLine("СтоимостьЭлектроэнергии");
                 sb.AppendLine(СтоимостьЭлектроэнергии.ToString());
                 sb.AppendLine("ВремяЭксплуатацииТеплоизоляции");
                 sb.AppendLine(ВремяЭксплуатацииТеплоизоляции.ToString());
-                sb.AppendLine("ВремяЭксплуатацииНесуихКонструкций");
-                sb.AppendLine(ВремяЭксплуатацииНесуихКонструкций.ToString());
+                sb.AppendLine("ВремяЭксплуатацииНесущихКонструкций");
+                sb.AppendLine(ВремяЭксплуатацииНесущихКонструкций.ToString());
                 sb.AppendLine("КредитнаяСтавка");
                 sb.AppendLine(КредитнаяСтавка.ToString());
                 sb.AppendLine("ДисконтированиеЭлектроэнергии");
                 sb.AppendLine(ДисконтированиеЭлектроэнергии.ToString());
                 sb.AppendLine("ТемператураВКомнате");
                 sb.AppendLine(ТемператураВКомнате.ToString());
-                sb.AppendLine("ТемператураВКомнате2");
-                sb.AppendLine(ТемператураВКомнате2.ToString());
 
                 return sb.ToString();
             }
@@ -318,14 +325,17 @@ namespace vatacalculator
                         case "СтоимостьТеплоизоляции":
                                     СтоимостьТеплоизоляции = long.Parse(val);
                                     break;
-                        case "СтоимостьМонтажаТеплоизоляции":
-                                    СтоимостьМонтажаТеплоизоляции = long.Parse(val);
+                        case "СтоимостьМонтажаТеплоизоляцииКуб":
+                                    СтоимостьМонтажаТеплоизоляцииКуб = long.Parse(val);
+                                    break;
+                        case "СтоимостьМонтажаТеплоизоляцииКв":
+                                    СтоимостьМонтажаТеплоизоляцииКв = long.Parse(val);
                                     break;
                         case "ВесТеплоизоляции":
                                     ВесТеплоизоляции = long.Parse(val);
                                     break;
-                        case "СтоимостьНесущихКонструкций":
-                                    ВремяЭксплуатацииНесущихКонструкций = long.Parse(val);
+                        case "СтоимостьПоддержкиОдногоКилограмма":
+                                    СтоимостьПоддержкиОдногоКилограмма = long.Parse(val);
                                     break;
                         case "Теплопроводность":
                                     Теплопроводность = long.Parse(val);
@@ -347,9 +357,6 @@ namespace vatacalculator
                                     break;
                         case "ТемператураВКомнате":
                                     ТемператураВКомнате = long.Parse(val);
-                                    break;
-                        case "ТемператураВКомнате2":
-                                    ТемператураВКомнате2 = long.Parse(val);
                                     break;
                         default:
                             throw new Exception("Встречена неожиданная строка: " + name + "\r\nДля комментирования строк в файле используйте символ #");
@@ -374,8 +381,6 @@ namespace vatacalculator
         {
             var dataFiles = dataDir.GetFiles();
 
-            Console.WriteLine("Выберите файл");
-
             SortedList<string, CalculationData> data = new SortedList<string, CalculationData>(dataFiles.Length);
             foreach (var df in dataFiles)
             {
@@ -383,19 +388,246 @@ namespace vatacalculator
                 data.Add(df.Name, cd);
             }
 
-            SortedList<int, string> keys = new SortedList<int, string>(64);
-            int i = 0;
-            Console.WriteLine("0. Выход");
-            int end = i + 25;
-            for (; i < data.Keys.Count/* && i < end*/; i++)
+            
+            SortedList<long, string> keys = new SortedList<long, string>(64);
+            long st, result;
+            do
             {
-                Console.WriteLine("" + (i+1).ToString("D2") + ". " + data.Keys[i]);
-                Console.WriteLine(data.Values[i].Name);
-                Console.WriteLine(data.Values[i].Comment);
+                keys.Clear();
+                Console.Clear();
+                Console.WriteLine("0. Выход");
+
+                int i = 0;
+                int end = i + 25;
+                for (; i < data.Keys.Count/* && i < end*/; i++)
+                {
+                    Console.WriteLine("" + (i+1).ToString("D2") + ". " + data.Keys[i]);
+                    Console.WriteLine(data.Values[i].Name);
+                    Console.WriteLine(data.Values[i].Comment);
+                    Console.WriteLine("----------------------------------------------------------------");
+
+                    keys.Add(i+1, data.Keys[i]);
+                }
+
+                Console.WriteLine("Выберите файл (введите номер файла и нажмите Enter)");
+
+                st = getLongFromConsole(out result, true);
+                if (st < 0 || result == 0)
+                    return "main menu";
             }
+            while (st != 1 || result < 0 || result > data.Keys.Count);
+            
+            var fileName = keys[result];
+            var calcData = data[fileName];
+
+            Console.Clear();
+            Console.WriteLine("Выбран файл " + fileName);
+            Console.WriteLine(calcData.Name);
+            Console.WriteLine(calcData.Comment);
+
+            calcAndPrintResult(calcData);
+
+            Console.ReadLine();
 
             return "main menu";
         }
 
+        private static void calcAndPrintResult(CalculationData calcData)
+        {
+            var cl = askClimatFile();
+
+            double minH = 0.1;
+            double maxH = 0.1;
+
+            double H = (minH + maxH) + 0.5;
+            int count = 0;
+            while (count < 100)
+            {
+                count++;
+
+                double H2 = H * 1.001;
+                double s1 = РассчитатьСуммарнуюСтоимость(calcData, H , cl);
+                double s2 = РассчитатьСуммарнуюСтоимость(calcData, H2, cl);
+
+                if (s1 > s2)
+                {
+                    minH = H;
+                    maxH = H*2.0;
+                }
+                else
+                if ((s1 - s2) / s2 < 0.001)
+                {
+                    break;
+                }
+                else
+                {
+                    minH = H / 2.0;
+                    maxH = H;
+                }
+            }
+
+            Console.WriteLine("----------------------------------------------------------------");
+            Console.WriteLine("Оптимальная толщина выбранного вида теплоизоляции " + (H*1000.0).ToString("F0") + " миллиметров");
+        }
+
+        class Climat
+        {
+            public string Name;
+            public string Comment;
+            public bool   daily;
+
+            public float[] degrees = new float[12];
+
+            public Climat(string FileName)
+            {
+                var f = File.ReadAllLines(FileName);
+                Name    = f[0];
+                Comment = f[1];
+                daily   = f[3].Trim().ToLower() == "daily";
+
+                int j = 0;
+                for (int i = 4; j < 12; i++)
+                {
+                    var str = f[i].Trim();
+
+                    if (str.Length <= 0)
+                        continue;
+
+                    float deg;
+                    try
+                    {
+                        deg = float.Parse(str, NumberFormatInfo.InvariantInfo);
+                    }
+                    catch
+                    {
+                        try
+                        {
+                            deg = float.Parse(str, NumberFormatInfo.CurrentInfo);
+                        }
+                        catch
+                        {
+                            throw new Exception("Не удалось прочитать файл климата: число неверное, строка " + i + "\r\nЗначение строки " + str);
+                        }
+                    }
+
+                    degrees[j] = deg;
+                    j++;
+                }
+            }
+        }
+
+        private static Climat askClimatFile()
+        {
+            Console.Clear();
+            var dataFiles = meteoDir.GetFiles();
+
+            SortedList<string, Climat> data = new SortedList<string, Climat>(dataFiles.Length);
+            foreach (var df in dataFiles)
+            {
+                try
+                {
+                    var cd = new Climat(df.FullName);
+                    data.Add(df.Name, cd);
+                }
+                catch (Exception ex)
+                {
+                    //throw new Exception("Не удалось прочитать файл климата " + df.Name + "\r\n" + ex.Message);
+                    Console.WriteLine("Не удалось прочитать файл климата " + df.Name + "\r\n" + ex.Message);
+                }
+            }
+
+            
+            SortedList<long, string> keys = new SortedList<long, string>(64);
+            long st, result;
+            do
+            {
+                keys.Clear();
+                Console.Clear();
+
+                int i = 0;
+                int end = i + 25;
+                for (; i < data.Keys.Count/* && i < end*/; i++)
+                {
+                    Console.WriteLine("" + i.ToString("D2") + ". " + data.Keys[i]);
+                    Console.WriteLine(data.Values[i].Name);
+                    Console.WriteLine(data.Values[i].Comment);
+                    Console.WriteLine("----------------------------------------------------------------");
+
+                    keys.Add(i, data.Keys[i]);
+                }
+
+                Console.WriteLine("Выберите файл (введите номер файла и нажмите Enter)");
+
+                st = getLongFromConsole(out result, true);
+            }
+            while (st != 1 || result < 0 && result >= data.Keys.Count);
+
+            var fileName = keys[result];
+            var calcData = data[fileName];
+
+            Console.Clear();
+            Console.WriteLine("Выбран файл " + fileName);
+            Console.WriteLine(calcData.Name);
+            Console.WriteLine(calcData.Comment);
+
+            return calcData;
+        }
+
+        private static double РассчитатьСуммарнуюСтоимость(CalculationData calcData, double H, Climat cl)
+        {
+            double СуммаНаЭлектроэнергию1 = РассчитатьСтоимостьЭлектроэнергии(H, calcData, cl);
+            double СуммаНаТеплоизоляцию1 = РассчитатьСтоимостьТеплоизоляции(H, calcData);
+
+            double s1 = СуммаНаЭлектроэнергию1 + СуммаНаТеплоизоляцию1;
+            return s1;
+        }
+
+        private static double РассчитатьСтоимостьТеплоизоляции(double H, CalculationData d)
+        {
+            // Стоимость монтажа квадратного метра
+            double result = d.СтоимостьМонтажаТеплоизоляцииКв;
+
+            // Монтаж куба изоляции и сам этот куб
+            result += (d.СтоимостьТеплоизоляции + d.СтоимостьМонтажаТеплоизоляцииКуб)*H;
+
+            // Рассчитываем сложные проценты
+            result *= Math.Pow(1.0 + d.КредитнаяСтавка/100.0, d.ВремяЭксплуатацииТеплоизоляции);
+
+            result += d.ВесТеплоизоляции * d.СтоимостьПоддержкиОдногоКилограмма * d.ВремяЭксплуатацииТеплоизоляции / d.ВремяЭксплуатацииНесущихКонструкций
+                                         * Math.Pow(1.0 + d.КредитнаяСтавка/100.0, d.ВремяЭксплуатацииНесущихКонструкций);
+
+            return result;
+        }
+
+        private static double РассчитатьСтоимостьЭлектроэнергии(double H, CalculationData d, Climat cl)
+        {
+            double result = 0;
+
+            // Стоимость потери одного вата круглый год
+            // / 100_000.0 - т.к. исходная цена в копейках за киловатт-час, а нам нужны рубли за ватт-час
+            double WCostPerYear = d.СтоимостьЭлектроэнергии / 100_000.0 * 365.25 * 24;
+
+            // Стоимость потери всех ватт, которые приходятся на кв. метр и на ОДИН градус разницы
+            // / 1000 - т.к. это в милливаттах
+            double CostPerYear  = WCostPerYear * d.Теплопроводность / 1000.0 / H;
+
+            // Начинаем с одного, т.к. считаем, что платим в конце года
+            for (int y = 1; y <= d.ВремяЭксплуатацииТеплоизоляции; y++)
+            {
+                // Оплата по месяцам
+                for (int m = 0; m < 12; m++)
+                {
+                    var temp = d.ТемператураВКомнате - cl.degrees[m];
+                    if (temp < 0)
+                        continue;
+
+                    var CurrentCost = CostPerYear / 12.0 * temp * Math.Pow(1.0 + d.ДисконтированиеЭлектроэнергии/100.0, d.ВремяЭксплуатацииТеплоизоляции - y - m/12.0);
+                    result += CurrentCost;
+                }
+            }
+
+
+            return result;
+        }
     }
 }
