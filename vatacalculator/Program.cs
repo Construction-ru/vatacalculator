@@ -151,6 +151,8 @@ namespace vatacalculator
 
             public int    State;
 
+            public string CurrentCalculationFileName;
+
             public CalculationData()
             {}
 
@@ -436,40 +438,156 @@ namespace vatacalculator
         {
             var cl = askClimatFile();
 
-            double minH = 0.1;
-            double maxH = 0.1;
+            var now = DateTime.Now;
+            calcData.CurrentCalculationFileName = now.Year.ToString("D4") + "-" + now.Month.ToString("D2") + now.Day.ToString("D2") + "-" + now.Hour.ToString("D2") + now.Minute.ToString("D2") + ".txt";
+            calcData.CurrentCalculationFileName = Path.Combine("results", calcData.CurrentCalculationFileName);
 
-            double H = (minH + maxH) + 0.5;
-            int count = 0;
-            while (count < 100)
+            if (!Directory.Exists("results"))
+                Directory.CreateDirectory("results");
+
+            SortedList<double, double> S = new SortedList<double, double>(1024);
+
+            int    count  = 0, cnt = 0;
+            double H      = 0.001;
+            double dh     = 0.001;
+            double lastH  = double.MaxValue;
+            double lastS  = double.MaxValue;
+            // Оптимизация идёт простым перебором
+            while (count < 10 && cnt < 1e6)
             {
-                count++;
-
-                double H2 = H * 1.001;
+                cnt++;
+                double dx = 1e-3;
+                // double H2 = H * (1.0 + dx);
                 double s1 = РассчитатьСуммарнуюСтоимость(calcData, H , cl);
-                double s2 = РассчитатьСуммарнуюСтоимость(calcData, H2, cl);
+                // double s2 = РассчитатьСуммарнуюСтоимость(calcData, H2, cl);
 
-                if (s1 > s2)
+                S.Add(H, s1);
+                if (s1 > lastS)
+                    count++;
+
+                lastS = s1;
+                H += dh;
+            }
+
+            foreach (var val in S)
+            {
+                if (val.Value < lastS)
                 {
-                    minH = H;
-                    maxH = H*2.0;
-                }
-                else
-                if ((s1 - s2) / s2 < 0.001)
-                {
-                    break;
-                }
-                else
-                {
-                    minH = H / 2.0;
-                    maxH = H;
+                    lastS = val.Value;
+                    lastH = val.Key;
                 }
             }
 
-            Console.WriteLine("----------------------------------------------------------------");
-            Console.WriteLine("Оптимальная толщина выбранного вида теплоизоляции " + (H*1000.0).ToString("F0") + " миллиметров");
+            H = lastH;
+
+            double se = РассчитатьСуммарнуюСтоимость(calcData, H , cl, true);
+
+            var sb = new StringBuilder();
+            sb.AppendLine("----------------------------------------------------------------");
+            sb.AppendLine("Оптимальная толщина выбранного вида теплоизоляции " + (H*1000.0).ToString("F0") + " миллиметров");
+
+            Console.WriteLine(sb.ToString());
+
+            sb.AppendLine("Суммарная стоимость расходов с учётом процентов " + se.ToString("C"));
+
+            se = РассчитатьСуммарнуюСтоимость(calcData, H + 0.01 , cl, false);
+            sb.AppendLine("Суммарная стоимость расходов с учётом процентов " + se.ToString("C") + " для толщины " + ((H + 0.01)*1000.0).ToString("F0"));
+            se = РассчитатьСуммарнуюСтоимость(calcData, Math.Abs(H - 0.01) , cl, false);
+            sb.AppendLine("Суммарная стоимость расходов с учётом процентов " + se.ToString("C") + " для толщины " + (Math.Abs(H - 0.01)*1000.0).ToString("F0"));
+
+            File.AppendAllText(calcData.CurrentCalculationFileName, sb.ToString());
         }
 
+        private static double РассчитатьСуммарнуюСтоимость(CalculationData calcData, double H, Climat cl, bool toFile = false)
+        {
+            double СуммаНаЭлектроэнергию1 = РассчитатьСтоимостьЭлектроэнергии(H, calcData, cl, toFile);
+            double СуммаНаТеплоизоляцию1 = РассчитатьСтоимостьТеплоизоляции(H, calcData, toFile);
+
+            double s1 = СуммаНаЭлектроэнергию1 + СуммаНаТеплоизоляцию1;
+            return s1;
+        }
+
+        private static double РассчитатьСтоимостьТеплоизоляции(double H, CalculationData d, bool toFile = false)
+        {
+            var sb = new StringBuilder();
+
+            // Стоимость монтажа квадратного метра
+            double result = d.СтоимостьМонтажаТеплоизоляцииКв;
+
+            // Монтаж куба изоляции и сам этот куб
+            var cube = (d.СтоимостьТеплоизоляции + d.СтоимостьМонтажаТеплоизоляцииКуб)*H;
+            result += cube;
+
+            // Рассчитываем сложные проценты
+            var percent = Math.Pow(1.0 + d.КредитнаяСтавка/100.0, d.ВремяЭксплуатацииТеплоизоляции);
+            result *= percent;
+
+            var a = d.ВесТеплоизоляции * d.СтоимостьПоддержкиОдногоКилограмма * d.ВремяЭксплуатацииТеплоизоляции / d.ВремяЭксплуатацииНесущихКонструкций;
+            result += a * Math.Pow(1.0 + d.КредитнаяСтавка/100.0, d.ВремяЭксплуатацииНесущихКонструкций);
+
+            sb.AppendLine("Стоимость монтажа квадратного метра " + d.СтоимостьМонтажаТеплоизоляцииКв.ToString("C"));
+            sb.AppendLine("Монтаж куба изоляции и сам этот куб " + cube.ToString("C"));
+            sb.AppendLine("Стоимость несущих конструкций " + a.ToString("C"));
+            sb.AppendLine("Проценты за время эксплуатации теплоизоляции (в разах; например, число 1,0 при ставке 0% годовых) " + percent);
+
+            sb.AppendLine("Всего затрат на теплоизоляцию 1 кв. метра (включая проценты) " + result.ToString("C"));
+
+            if (toFile)
+                File.AppendAllText(d.CurrentCalculationFileName, sb.ToString());
+
+            return result;
+        }
+
+        public static string[] monthes = {"Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"};
+
+        private static double РассчитатьСтоимостьЭлектроэнергии(double H, CalculationData d, Climat cl, bool toFile = false)
+        {
+            var sb = new StringBuilder();
+            double result = 0;
+
+            // Стоимость потери одного вата круглый год
+            // / 100_000.0 - т.к. исходная цена в копейках за киловатт-час, а нам нужны рубли за ватт-час
+            double WCostPerYear = d.СтоимостьЭлектроэнергии / 100_000.0 * 365.25 * 24;
+
+            // Стоимость потери всех ватт, которые приходятся на кв. метр и на ОДИН градус разницы
+            // / 1000 - т.к. это в милливаттах
+            double W           = d.Теплопроводность / 1000.0 / H;
+            double CostPerYear = WCostPerYear * W;
+
+            sb.AppendLine("Стоимость потери одного ватта в год на один градус разницы температуры " + WCostPerYear.ToString("C"));
+            sb.AppendLine("Стоимость потери всех ватт в год на один градус разницы температуры " +  CostPerYear.ToString("C"));
+            sb.AppendLine("Потери тепла ватт на кв. метр на градус " +  W.ToString("F2"));
+            sb.AppendLine("Затраты на кв. месяц по месяцам без учёта процентов");
+
+            // Начинаем с одного, т.к. считаем, что платим в конце года
+            for (int y = 1; y <= d.ВремяЭксплуатацииТеплоизоляции; y++)
+            {
+                // Оплата по месяцам
+                for (int m = 0; m < 12; m++)
+                {
+                    var temp = d.ТемператураВКомнате - cl.degrees[m];
+                    if (temp < 0)
+                        continue;
+
+                    var CurrentCost = CostPerYear / 12.0 * temp;
+                    result += CurrentCost * Math.Pow(1.0 + d.ДисконтированиеЭлектроэнергии/100.0, d.ВремяЭксплуатацииТеплоизоляции - y - m/12.0);
+
+                    if (y == 1)
+                    {
+                        sb.AppendLine(monthes[m] + ": " + CurrentCost.ToString("C") + ", разница температур " + temp.ToString("F1") + ", потери " + (W*temp).ToString("F2") + " ватт на кв. метр");
+                    }
+                }
+            }
+
+            sb.AppendLine("Всего затрат на отопление за срок эксплуатации теплоизоляции с учётом ставки дисконтирования " + result.ToString("C"));
+
+            if (toFile)
+                File.AppendAllText(d.CurrentCalculationFileName, sb.ToString());
+
+            return result;
+        }
+
+        
         class Climat
         {
             public string Name;
@@ -536,7 +654,6 @@ namespace vatacalculator
                 }
             }
 
-            
             SortedList<long, string> keys = new SortedList<long, string>(64);
             long st, result;
             do
@@ -560,7 +677,7 @@ namespace vatacalculator
 
                 st = getLongFromConsole(out result, true);
             }
-            while (st != 1 || result < 0 && result >= data.Keys.Count);
+            while (st != 1 || result < 0 || result >= data.Keys.Count);
 
             var fileName = keys[result];
             var calcData = data[fileName];
@@ -573,61 +690,5 @@ namespace vatacalculator
             return calcData;
         }
 
-        private static double РассчитатьСуммарнуюСтоимость(CalculationData calcData, double H, Climat cl)
-        {
-            double СуммаНаЭлектроэнергию1 = РассчитатьСтоимостьЭлектроэнергии(H, calcData, cl);
-            double СуммаНаТеплоизоляцию1 = РассчитатьСтоимостьТеплоизоляции(H, calcData);
-
-            double s1 = СуммаНаЭлектроэнергию1 + СуммаНаТеплоизоляцию1;
-            return s1;
-        }
-
-        private static double РассчитатьСтоимостьТеплоизоляции(double H, CalculationData d)
-        {
-            // Стоимость монтажа квадратного метра
-            double result = d.СтоимостьМонтажаТеплоизоляцииКв;
-
-            // Монтаж куба изоляции и сам этот куб
-            result += (d.СтоимостьТеплоизоляции + d.СтоимостьМонтажаТеплоизоляцииКуб)*H;
-
-            // Рассчитываем сложные проценты
-            result *= Math.Pow(1.0 + d.КредитнаяСтавка/100.0, d.ВремяЭксплуатацииТеплоизоляции);
-
-            result += d.ВесТеплоизоляции * d.СтоимостьПоддержкиОдногоКилограмма * d.ВремяЭксплуатацииТеплоизоляции / d.ВремяЭксплуатацииНесущихКонструкций
-                                         * Math.Pow(1.0 + d.КредитнаяСтавка/100.0, d.ВремяЭксплуатацииНесущихКонструкций);
-
-            return result;
-        }
-
-        private static double РассчитатьСтоимостьЭлектроэнергии(double H, CalculationData d, Climat cl)
-        {
-            double result = 0;
-
-            // Стоимость потери одного вата круглый год
-            // / 100_000.0 - т.к. исходная цена в копейках за киловатт-час, а нам нужны рубли за ватт-час
-            double WCostPerYear = d.СтоимостьЭлектроэнергии / 100_000.0 * 365.25 * 24;
-
-            // Стоимость потери всех ватт, которые приходятся на кв. метр и на ОДИН градус разницы
-            // / 1000 - т.к. это в милливаттах
-            double CostPerYear  = WCostPerYear * d.Теплопроводность / 1000.0 / H;
-
-            // Начинаем с одного, т.к. считаем, что платим в конце года
-            for (int y = 1; y <= d.ВремяЭксплуатацииТеплоизоляции; y++)
-            {
-                // Оплата по месяцам
-                for (int m = 0; m < 12; m++)
-                {
-                    var temp = d.ТемператураВКомнате - cl.degrees[m];
-                    if (temp < 0)
-                        continue;
-
-                    var CurrentCost = CostPerYear / 12.0 * temp * Math.Pow(1.0 + d.ДисконтированиеЭлектроэнергии/100.0, d.ВремяЭксплуатацииТеплоизоляции - y - m/12.0);
-                    result += CurrentCost;
-                }
-            }
-
-
-            return result;
-        }
     }
 }
