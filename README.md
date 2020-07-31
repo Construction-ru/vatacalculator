@@ -3,14 +3,13 @@
 
 ## Установка
 
+### Microsoft .NET Core
+Для работы программы нужна установленная ".NET Core 3.1". Взять её можно с сайта Microsoft: https://dotnet.microsoft.com/download/dotnet-core . На странице закачки нужно выбрать ".NET Core Runtime" либо "Desktop Runtime".
+
 ### Дистрибутив программы
 Взять архив с программой можно из меню Releases в правой части страницы (https://github.com/Construction-ru/vatacalculator/releases).
 Установки программа не требует (если уже есть .NET Core).
 Просто распакуйте архив (архиватор https://www.7-zip.org/ ) с исполняемыми файлами и запустите их. Не распаковывайте в "Program Files", т.к. там могут быть проблемы с запуском (нужно распаковывать в любую вашу папку).
-
-### Microsoft .NET Core
-Для работы программы нужна установленная ".NET Core 3.1". Взять её можно с сайта Microsoft: https://dotnet.microsoft.com/download/dotnet-core . На странице закачки нужно выбрать ".NET Core Runtime" либо "Desktop Runtime".
-
 
 
 ## Запуск
