@@ -672,7 +672,7 @@ namespace vatacalculator
                         }
                         catch
                         {
-                            throw new Exception("Не удалось прочитать файл климата: число неверное, строка " + i + "\r\nЗначение строки " + str);
+                            throw new Exception("Не удалось прочитать файл климата: число неверное, строка " + i + "\r\nЗначение строки '" + str + "'");
                         }
                     }
 
@@ -709,7 +709,6 @@ namespace vatacalculator
             {
                 ch = null;
                 keys.Clear();
-                Console.Clear();
 
                 int i = 0;
                 int endE = 5;
