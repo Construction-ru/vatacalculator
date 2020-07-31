@@ -413,6 +413,13 @@ namespace vatacalculator
                 int endE  = 5;
                 int end   = endE;
                 string ch = null;
+
+                for (; i < data.Keys.Count/* && i < end*/; i++)
+                {
+                    keys.Add(i+1, data.Keys[i]);
+                }
+
+                i = 0;
                 for (; i < data.Keys.Count/* && i < end*/; i++)
                 {
                     ch = null;
@@ -421,8 +428,6 @@ namespace vatacalculator
                     Console.WriteLine(data.Values[i].Name);
                     Console.WriteLine(data.Values[i].Comment);
                     Console.WriteLine("----------------------------------------------------------------");
-
-                    keys.Add(i+1, data.Keys[i]);
 
                     end--;
 
@@ -708,12 +713,16 @@ namespace vatacalculator
                 int end  = endE;
                 for (; i < data.Keys.Count/* && i < end*/; i++)
                 {
+                    keys.Add(i, data.Keys[i]);
+                }
+
+                i = 0;
+                for (; i < data.Keys.Count/* && i < end*/; i++)
+                {
                     Console.WriteLine("" + i.ToString("D2") + ". " + data.Keys[i]);
                     Console.WriteLine(data.Values[i].Name);
                     Console.WriteLine(data.Values[i].Comment);
                     Console.WriteLine("----------------------------------------------------------------");
-
-                    keys.Add(i, data.Keys[i]);
 
                     end--;
 
