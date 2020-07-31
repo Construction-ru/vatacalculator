@@ -398,6 +398,7 @@ namespace vatacalculator
                 keys.Clear();
                 Console.Clear();
                 Console.WriteLine("0. Выход");
+                Console.WriteLine("----------------------------------------------------------------");
 
                 int i = 0;
                 int endE = 5;
@@ -420,6 +421,8 @@ namespace vatacalculator
                         var ch = Console.ReadLine();
                         if (ch == "q")
                             break;
+                        if (ch == "0")
+                            return "main menu";
                     }
                 }
 
@@ -449,6 +452,9 @@ namespace vatacalculator
         private static void calcAndPrintResult(CalculationData calcData)
         {
             var cl = askClimatFile();
+            var sb = new StringBuilder();
+            sb.AppendLine("Файл расчёта" + calcData.Name);
+            sb.AppendLine("Файл климата" + cl.Name);
 
             var now = DateTime.Now;
             calcData.CurrentCalculationFileName = now.Year.ToString("D4") + "-" + now.Month.ToString("D2") + now.Day.ToString("D2") + "-" + now.Hour.ToString("D2") + now.Minute.ToString("D2") + ".txt";
@@ -494,7 +500,6 @@ namespace vatacalculator
 
             double se = РассчитатьСуммарнуюСтоимость(calcData, H , cl, true);
 
-            var sb = new StringBuilder();
             sb.AppendLine("----------------------------------------------------------------");
             sb.AppendLine("Оптимальная толщина выбранного вида теплоизоляции " + (H*1000.0).ToString("F0") + " миллиметров");
 
