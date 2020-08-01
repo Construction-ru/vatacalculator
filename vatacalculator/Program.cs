@@ -497,6 +497,11 @@ namespace vatacalculator
             sb.AppendLine("Файл расчёта " + calcData.Name);
             sb.AppendLine("Файл климата " + cl.Name);
 
+            if (calcData.КредитнаяСтавка < calcData.ДисконтированиеЭлектроэнергии && calcData.СрокКредита > 0)
+            {
+                sb.AppendLine("Обратите внимание: кредитная ставка меньше ставки дисконтирования, а срок кредита ненулевой. Возможно, это ошибка.");
+            }
+
             var now = DateTime.Now;
             calcData.CurrentCalculationFileName = now.Year.ToString("D4") + "-" + now.Month.ToString("D2") + now.Day.ToString("D2") + "-" + now.Hour.ToString("D2") + now.Minute.ToString("D2") + now.Second.ToString("D2") + ".txt";
             calcData.CurrentCalculationFileName = Path.Combine("results", calcData.CurrentCalculationFileName);
