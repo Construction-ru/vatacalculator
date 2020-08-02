@@ -72,3 +72,4 @@
 
 ### Благодарности
 Благодарю Глеба Гринфелда http://glebgrin.ru/ за ссылки на статьи по теме, которые помогли исправить неверный расчёт кредита.
+Ссылки по теме: http://stroy-profi.info/files/pdf/21/stroyprofi-21-30.pdf , https://cyberleninka.ru/article/n/perspektivy-povysheniya-energeticheskoy-effektivnosti-zhilyh-zdaniy-v-rossii-1/viewer
