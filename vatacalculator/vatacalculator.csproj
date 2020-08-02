@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="perspektiv-pov-sheniya-energeticheskoy-effektivnosti-jil-h-zdaniy-v-rossii.pdf" />
+    <None Remove="stroyprofi-21-30.pdf" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="meteo\" />
   </ItemGroup>
 
