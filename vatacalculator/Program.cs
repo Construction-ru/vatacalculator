@@ -116,6 +116,11 @@ namespace vatacalculator
             return getLongFromConsole(null, out result, require, defaultVal);
         }
 
+        private static int getFloatFromConsole(out float result, bool require = true, float defaultVal = 0.0f)
+        {
+            return getFloatFromConsole(null, out result, require, defaultVal);
+        }
+
         private static int getLongFromConsole(string val, out long result, bool require = true, long defaultVal = long.MinValue)
         {
             while (true)
@@ -139,6 +144,29 @@ namespace vatacalculator
             }
         }
 
+        private static int getFloatFromConsole(string val, out float result, bool require = true, float defaultVal = 0.0f)
+        {
+            while (true)
+            {
+                result = defaultVal;
+                if (val == null)
+                    val = getStringFromConsole();
+
+                if (val.Length == 0 && !require)
+                    return 0;
+
+                if (val == "q")
+                    return -1;
+
+                if (float.TryParse(val, out result))
+                    return 1;
+
+                //return 2;
+                Console.WriteLine("Введено неверное значение: '" + val + "'. Пожалуйста, введите число. Пример формата: " + (1.23f).ToString());
+                val = null;
+            }
+        }
+
 
         class CalculationData
         {
@@ -151,6 +179,7 @@ namespace vatacalculator
             public long   СтоимостьПоддержкиОдногоКилограмма;
             public long   ВесТеплоизоляции;
             public long   Теплопроводность;
+            public long   ИноеТепловоеСопротивление = 0;
             public long   СтоимостьЭлектроэнергии;
             public long   ВремяЭксплуатацииТеплоизоляции;
             // public long   ВремяЭксплуатацииНесущихКонструкций;
@@ -205,9 +234,15 @@ namespace vatacalculator
                 if (State < 0)
                     return;
 
-                Console.WriteLine("Теплопроводность теплоизоляции, милливат на метр на Кельвин");
+                Console.WriteLine("Теплопроводность теплоизоляции, милливат на метр на Кельвин (то есть лямбда, умноженная на 1000)");
                 Console.WriteLine("Обратите внимание, ввод идёт в милливатах. Например, коэффициент 0,034 - это 34. Коэффициент 0,45 - это 450.");
                 State = getLongFromConsole(out Теплопроводность);
+                if (State < 0)
+                    return;
+
+                Console.WriteLine("Иное тепловое сопротивление, в милли Омах (домножить значение на 1000). Если есть иной слой теплоизолирующего материала");
+                Console.WriteLine("Например, термическое сопротивление для 375 мм газобетона глубиной L=0,147: 0,375/0,147=2,551. 2,551*1000=2551, значит нужно ввести 2551");
+                State = getLongFromConsole(out ИноеТепловоеСопротивление);
                 if (State < 0)
                     return;
 
@@ -254,10 +289,10 @@ namespace vatacalculator
                 FileInfo fi = null;
                 try
                 {
-                    Console.WriteLine("Введите имя файла расчёта (будет сохранён в директории 'data'):");
+                    Console.WriteLine($"Введите имя файла расчёта. Он будет сохранён в директории\r\n{dataDir.FullName}");
                     FileName = Console.ReadLine();
 
-                    fi = new FileInfo(Path.Combine("data", FileName));
+                    fi = new FileInfo(Path.Combine(dataDir.FullName, FileName));
                     if (fi.Exists)
                     {
                         Console.WriteLine("Такой файл уже существует");
@@ -299,6 +334,8 @@ namespace vatacalculator
                 sb.AppendLine(СтоимостьПоддержкиОдногоКилограмма.ToString());
                 sb.AppendLine("Теплопроводность");
                 sb.AppendLine(Теплопроводность.ToString());
+                sb.AppendLine("Тепловое сопротивление иных слоёв теплоизоляции");
+                sb.AppendLine(ИноеТепловоеСопротивление.ToString().Replace(",", "."));
                 sb.AppendLine("СтоимостьЭлектроэнергии");
                 sb.AppendLine(СтоимостьЭлектроэнергии.ToString());
                 sb.AppendLine("ВремяЭксплуатацииТеплоизоляции");
@@ -359,6 +396,9 @@ namespace vatacalculator
                         case "Теплопроводность":
                                     Теплопроводность = long.Parse(val);
                                     break;
+                        case "Тепловое сопротивление иных слоёв теплоизоляции":
+                                    ИноеТепловоеСопротивление = long.Parse(val, style: NumberStyles.Float);
+                                    break;
                         case "СтоимостьЭлектроэнергии":
                                     СтоимостьЭлектроэнергии = long.Parse(val);
                                     break;
@@ -393,6 +433,25 @@ namespace vatacalculator
 
         private static string create()
         {
+            DirectoryInfo di;
+            Console.Clear();
+            do
+            {
+                Console.WriteLine($"Если необходимо выбрать поддиректорию с данными, введите её имя. Нажмите Enter, чтобы остаться в папке {dataDir.Name}");
+                var str       = getStringFromConsole();
+
+                if (string.IsNullOrEmpty(str))
+                    di = dataDir;
+                else
+                    di = new DirectoryInfo(  Path.Combine("data", str)  );
+
+                if (!di.Exists)
+                {
+                    di.Create();
+                }
+            }
+            while (!di.Exists);
+
             var cd = new CalculationData();
             cd.SetValuesFromConsole();
 
@@ -404,6 +463,26 @@ namespace vatacalculator
 
         public static string calc()
         {
+            DirectoryInfo di;
+            Console.Clear();
+            do
+            {
+                Console.WriteLine($"Если необходимо выбрать поддиректорию с данными, введите её имя. Нажмите Enter, чтобы остаться в папке\r\n{dataDir.Name}");
+                var str       = getStringFromConsole();
+
+                if (string.IsNullOrEmpty(str))
+                    di = dataDir;
+                else
+                    di = new DirectoryInfo(  Path.Combine("data", str)  );
+
+                if (!di.Exists)
+                {
+                    Console.WriteLine("Директории не существует: " + di.FullName);
+                }
+            }
+            while (!di.Exists);
+
+            dataDir = di;
             var dataFiles = dataDir.GetFiles();
 
             SortedList<string, CalculationData> data = new SortedList<string, CalculationData>(dataFiles.Length);
@@ -512,11 +591,12 @@ namespace vatacalculator
             SortedList<double, double> S = new SortedList<double, double>(1024);
 
             int    count  = 0, cnt = 0;
+            const double dh     = 0.001;
+
             double H      = 0.001;
-            double dh     = 0.001;
             double lastH  = double.MaxValue;
             double lastS  = double.MaxValue;
-            // Оптимизация идёт простым перебором
+            // Оптимизация идёт простым перебором до достижения минимума (по миллиметру, шаг задаётся константой dh)
             while (count < 10 && cnt < 1e6)
             {
                 cnt++;
@@ -590,6 +670,7 @@ namespace vatacalculator
             sb.AppendLine("Стоимость теплоизоляции куб. метра и монтажа " + cube.ToString("C"));
             sb.AppendLine("Стоимость несущих конструкций "                + a1.ToString("C"));
 
+            // TODO: ВремяЭксплуатацииТеплоизоляции - это точно верный расчёт с учётом целого числа смен теплоизоляции?
             var k2 = Math.Pow(1.0 + d.ДисконтированиеЭлектроэнергии/100.0, d.ВремяЭксплуатацииТеплоизоляции);
             if (d.СрокКредита > 0)
             {
@@ -642,17 +723,22 @@ namespace vatacalculator
             // / 100_000.0 - т.к. исходная цена в копейках за киловатт-час, а нам нужны рубли за ватт-час
             double WCostPerYear = d.СтоимостьЭлектроэнергии / 100_000.0 * 365.25 * 24;
 
+            
+            // / d.Теплопроводность / 1000.0 - т.к. это лямбда, домноженная на 1000
+            // Тепловой закон Ома - это U/r = I
+            // U = 1. Значит считаем только r, которая равна r = H / lambda
+            double r           = d.ИноеТепловоеСопротивление / 1000.0   +   H / (d.Теплопроводность / 1000.0);
             // Стоимость потери всех ватт, которые приходятся на кв. метр и на ОДИН градус разницы
-            // / 1000 - т.к. это в милливаттах
-            double W           = d.Теплопроводность / 1000.0 / H;
+            double W           = 1.0 / r;
+
             double CostPerYear = WCostPerYear * W;
 
             sb.AppendLine("Стоимость потери одного ватта в год на один градус разницы температуры " + WCostPerYear.ToString("C"));
             sb.AppendLine("Стоимость потери всех ватт в год на один градус разницы температуры " +  CostPerYear.ToString("C"));
             sb.AppendLine("Потери тепла ватт на кв. метр на градус " +  W.ToString("F2"));
-            sb.AppendLine("Затраты на кв. месяц по месяцам без учёта процентов");
+            sb.AppendLine("Затраты на кв. метр по месяцам без учёта процентов (но со ставкой дисконтирования)");
 
-            // Начинаем с одного, т.к. считаем, что платим в конце года
+            // Начинаем с одного, т.к. считаем, что платим в конце года и вычитаем с конца года ещё месяцы
             double CostPerYearTemp = 0.0;
             for (int y = 1; y <= d.ВремяЭксплуатацииТеплоизоляции; y++)
             {
@@ -666,6 +752,7 @@ namespace vatacalculator
                     var CurrentCost = CostPerYear / 12.0 * temp;
                     result += CurrentCost * Math.Pow(1.0 + d.ДисконтированиеЭлектроэнергии/100.0, d.ВремяЭксплуатацииТеплоизоляции - y - m/12.0);
 
+                    // Выводим затраты по месяцам за первый год
                     if (y == 1)
                     {
                         CostPerYearTemp += CurrentCost;
