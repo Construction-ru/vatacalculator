@@ -79,6 +79,9 @@
     <None Update="data\вата\120-170">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="data\вата\120-170 газобетон D500 375">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="data\газобетон\D400 мок117 10%25">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
